@@ -3,7 +3,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 
-const apiKey = process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY || "";
+const openRouterKey = ((process.env.OR_KEY_P1 || "") + (process.env.OR_KEY_P2 || "")).trim();
+const geminiKey = (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "").trim();
 
 // 🌐 Language mapping
 const languageMap: Record<string, string> = {
@@ -48,8 +49,8 @@ export async function POST(req: Request) {
             }
         }
 
-        // 🔁 OFFLINE FALLBACK (SMART + MULTILINGUAL)
-        if (!apiKey) {
+        // 🔁 OFFLINE FALLBACK (If no keys available)
+        if (!openRouterKey && !geminiKey) {
             const lowerMsg = message.toLowerCase();
             let reply = "";
 
@@ -101,8 +102,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ reply });
         }
 
-        // 🤖 OPENROUTER AI MODE
-        // 🧠 STRONG SYSTEM PROMPT (Responsible + Multilingual)
+        // 🤖 AI MODE
         const systemPrompt = `
 You are "Krishi Sathi", a responsible and expert agricultural AI assistant for Indian farmers.
 
@@ -122,83 +122,78 @@ When user asks about products, mention these options.
 When asked about farming, give actionable advice suitable for Indian climate.
 `;
 
-        let messages: any[] = [
-            { role: "system", content: systemPrompt }
-        ];
+        let replyText = "";
 
-        // 📄 PDF Handling (Not directly supported in standard OpenRouter text endpoint, we add a notice)
-        if (pdfDataArray?.length) {
-            messages.push({ 
-                role: "system", 
-                content: "Note: The user has attached PDF files, but the current OpenRouter API integration does not support reading PDFs directly. Please inform the user that you cannot read the PDFs at this moment, but you are ready to answer their questions." 
-            });
+        if (openRouterKey && openRouterKey.length > 20) {
+            // Use OpenRouter
+            try {
+                console.log("Attempting OpenRouter AI...");
+                const messages = [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: message }
+                ];
+
+                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${openRouterKey}`,
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": "http://localhost:3002",
+                        "X-Title": "Krishi Sathi"
+                    },
+                    body: JSON.stringify({
+                        model: "google/gemini-2.0-flash-001",
+                        messages: messages,
+                        temperature: 0.7
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    replyText = data.choices?.[0]?.message?.content || "";
+                    if (replyText) console.log("OpenRouter Success");
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error("OpenRouter Error Details:", errorData);
+                }
+            } catch (err) {
+                console.error("OpenRouter Fetch Exception:", err);
+            }
         }
 
-        messages.push({ role: "user", content: message });
-
-        try {
-            const openRouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${apiKey}`,
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "http://localhost:3000",
-                    "X-Title": "Krishi Sathi"
-                },
-                body: JSON.stringify({
-                    model: "google/gemini-2.0-flash-001",
-                    messages: messages
-                })
-            });
-
-            if (!openRouterResponse.ok) {
-                throw new Error(`OpenRouter API error: ${openRouterResponse.status}`);
+        if (!replyText && geminiKey && geminiKey.length > 20) {
+            // Use Gemini Direct Fallback
+            try {
+                console.log("Attempting Gemini Direct AI...");
+                const genAI = new GoogleGenerativeAI(geminiKey);
+                const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+                const result = await model.generateContent(`${systemPrompt}\n\nUser Question: ${message}`);
+                replyText = result.response.text();
+                if (replyText) console.log("Gemini Direct Success");
+            } catch (err: any) {
+                console.error("Gemini Direct Error:", err?.message || err);
             }
+        }
 
-            const data = await openRouterResponse.json();
-            const text = data.choices?.[0]?.message?.content;
 
-            return NextResponse.json({
-                reply: text || "I understand your question. Please provide more details for better assistance."
-            });
-        } catch (aiError: any) {
-            console.error("Gemini AI Error:", aiError?.message);
-            
-            // Fallback to smart offline response
-            const lowerMsg = message.toLowerCase();
-            let fallbackReply = "";
-
-            if (lowerMsg.includes("hello") || lowerMsg.includes("hi") || lowerMsg.includes("namaskar")) {
-                fallbackReply = "Hello! I'm Krishi Sathi, your agricultural assistant. How can I help you today?";
-            } else if (lowerMsg.includes("npk")) {
-                fallbackReply = "NPK refers to Nitrogen, Phosphorus, and Potassium - essential nutrients for crops. We have NPK fertilizers available.";
-            } else if (lowerMsg.includes("soil") || lowerMsg.includes("moisture")) {
-                fallbackReply = "Healthy soil should be moist like a wrung-out sponge. Avoid waterlogging. Try mulching to retain moisture.";
-            } else if (lowerMsg.includes("product") || lowerMsg.includes("buy") || lowerMsg.includes("price")) {
-                fallbackReply = `We sell high-quality agricultural products including: ${productListString}. Interested in any?`;
-            } else {
-                fallbackReply = "That's a great farming question! Could you ask more specifically about soil, crops, irrigation, or our products?";
-            }
-
-            return NextResponse.json({ reply: fallbackReply });
+        if (replyText) {
+            return NextResponse.json({ reply: replyText });
+        } else {
+            throw new Error("All AI routes failed");
         }
 
     } catch (error: any) {
         console.error("AI Chat Error:", error?.message || error);
         
-        // Fallback: Always return a helpful response
         const fallbackResponses: Record<string, string> = {
-            en: "Hello! I'm Krishi Sathi, your agricultural expert. I'm having a temporary issue but I'm here to help. Ask me about farming, soil care, or our products!",
+            en: "Hello! I'm Krishi Sathi. I'm having a temporary issue but I'm here to help. Ask me about farming, soil, or products!",
             hi: "नमस्ते! मैं कृषि साथी हूँ। कृपया अपना सवाल दोबारा पूछें - खेती, मिट्टी, या उत्पादों के बारे में।",
             bn: "নমস্কার! আমি কৃষি সাথী। আপনার প্রশ্ন আবার পাঠান - চাষ, মাটি বা পণ্যের বিষয়ে।",
             ur: "السلام علیکم! میں کرشی ساتھی ہوں۔ براہ کرم دوبارہ کوشش کریں۔"
         };
         
-        const response = fallbackResponses[language] || fallbackResponses.en;
-
-        return NextResponse.json(
-            { reply: response },
-            { status: 200 }
-        );
+        return NextResponse.json({ 
+            reply: fallbackResponses[language] || fallbackResponses.en 
+        });
     }
 }
