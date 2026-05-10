@@ -111,6 +111,14 @@ export default function Home() {
             <Link href="/checkout" className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-full font-bold text-lg transition-all shadow-lg hover:shadow-slate-900/20 flex items-center gap-2">
               Buy Now <ArrowRight className="w-5 h-5" />
             </Link>
+            <a 
+              href="https://soilai.vercel.app" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="bg-white/90 hover:bg-white text-slate-900 px-8 py-4 rounded-full font-bold text-lg transition-all shadow-lg backdrop-blur-sm flex items-center gap-2"
+            >
+              Launch SoilAI Platform <ArrowRight className="w-5 h-5" />
+            </a>
           </motion.div>
         </div>
       </section>
@@ -342,12 +350,12 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <a 
-                href="http://localhost:5173/" 
+                href="https://soilai.vercel.app" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="bg-green-500 hover:bg-green-400 text-slate-900 px-8 py-4 rounded-full font-black text-lg transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] flex items-center gap-2 w-full sm:w-fit"
               >
-                Launch Local Controller <ArrowRight className="w-5 h-5" />
+                Launch SoilAI Platform <ArrowRight className="w-5 h-5" />
               </a>
               <Link 
                 href="/soil-monitor" 

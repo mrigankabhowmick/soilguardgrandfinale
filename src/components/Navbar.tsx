@@ -43,6 +43,7 @@ export default function Navbar() {
                 {/* Desktop Links */}
                 <div className="hidden md:flex items-center gap-8">
                     <Link href="/" className={`text-sm font-medium transition-colors ${isScrolled ? 'text-slate-600 hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400' : 'text-white hover:text-green-400 drop-shadow-sm'}`}>Home</Link>
+                    <a href="https://soilai.vercel.app" target="_blank" rel="noopener noreferrer" className={`text-sm font-bold transition-colors ${isScrolled ? 'text-emerald-600 hover:text-emerald-700' : 'text-emerald-400 hover:text-emerald-300 drop-shadow-md'}`}>SoilAI Platform</a>
                     <Link href="/shop" className={`text-sm font-medium transition-colors ${isScrolled ? 'text-slate-600 hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400' : 'text-white hover:text-green-400 drop-shadow-sm'}`}>Shop</Link>
                     <Link href="/drone-analysis" className={`text-sm font-bold transition-colors ${isScrolled ? 'text-slate-600 hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400' : 'text-white hover:text-green-400 drop-shadow-sm'}`}>Analysis</Link>
                     {status === 'authenticated' && <Link href="/orders" className={`text-sm font-medium transition-colors ${isScrolled ? 'text-slate-600 hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400' : 'text-white hover:text-green-400 drop-shadow-sm'}`}>Orders</Link>}
