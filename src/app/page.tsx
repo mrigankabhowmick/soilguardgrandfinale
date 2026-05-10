@@ -355,7 +355,7 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="bg-green-500 hover:bg-green-400 text-slate-900 px-8 py-4 rounded-full font-black text-lg transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] flex items-center gap-2 w-full sm:w-fit"
               >
-                Launch SoilAI Platform <ArrowRight className="w-5 h-5" />
+                Launch Local Controller <ArrowRight className="w-5 h-5" />
               </a>
               <Link 
                 href="/soil-monitor" 
